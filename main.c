@@ -25,8 +25,10 @@ int main(int argc, char *argv[]) {
         puts("");
     }
 
+    MARC_free_record(record);
+
     fclose(fp);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 

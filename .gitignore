@@ -52,3 +52,6 @@ Mkfile.old
 dkms.conf
 
 /.vscode
+
+# Output programs
+read_marc

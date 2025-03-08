@@ -39,5 +39,6 @@ typedef struct {
 
 int MARC_get_next_raw(char *raw_record, FILE *fp);
 Record* MARC_get_record(char *record_raw);
+void MARC_free_record(Record *record);
 
 #endif

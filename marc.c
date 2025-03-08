@@ -52,6 +52,36 @@ Record* MARC_get_record(char *record_raw) {
 }
 
 
+void MARC_free_record(Record *record) {
+    for (int i = 0; i < record->cf_count; i++) {
+        if (record->control_fields[i].tag)
+            free(record->control_fields[i].tag);
+
+        if (record->control_fields[i].value)
+            free(record->control_fields[i].value);
+    }
+    free(record->control_fields);
+
+    for (int i = 0; i < record->df_count; i++) {
+        if (record->data_fields[i].tag)
+            free(record->data_fields[i].tag);
+
+        for (int j = 0; j < record->data_fields[i].sf_count; j++) {
+            if (record->data_fields[i].subfields[j].value)
+                free(record->data_fields[i].subfields[j].value);
+        }
+        if (record->data_fields[i].subfields)
+            free(record->data_fields[i].subfields);
+    }
+    free(record->data_fields);
+
+    if (record->leader)
+        free(record->leader);
+
+    free(record);
+}
+
+
 char* MARC_get_leader(char *record_raw) {
     char *leader = malloc(LEADER_LENGTH + 1);
 
