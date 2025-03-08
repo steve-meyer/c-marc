@@ -187,7 +187,7 @@ void MARC_get_control_fields(Record *record, size_t directory_length, char *dire
         strcpy(control_field->tag, tag);
         control_field->tag[3] = '\0';
         strcpy(control_field->value, data);
-        control_field->value[data_length] = '\0';
+        marc_chomp(control_field->value);
 
         record->control_fields[i] = *control_field;
     }
@@ -270,7 +270,7 @@ Subfield *MARC_create_subfield(size_t token_length, char *token) {
     sf->code = token[0];
     sf->value = malloc(token_length);
     strncpy(sf->value, token + 1, token_length - 1);
-    sf->value[token_length] = '\0';
+    marc_chomp(sf->value);
 
     return sf;
 }
