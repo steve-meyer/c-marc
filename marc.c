@@ -20,7 +20,11 @@ int MARC_get_next_raw(char *raw_record, FILE *fp) {
     char c;
 
     // TODO: throw an error if the byte count exceeds the 99,999 set in the spec.
-    while ((c = fgetc(fp)) != END_OF_RECORD) {
+    while ((c = fgetc(fp)) != END_OF_RECORD)
+    {
+        if (c == EOF)
+            return EOF;
+
         raw_record[i] = c;
         i++;
     }
