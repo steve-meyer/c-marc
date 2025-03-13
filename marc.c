@@ -13,7 +13,7 @@ int get_subfield_count(size_t data_len, char *data);
 DataField *MARC_create_data_field(char *tag, size_t subfield_count, char *data);
 Subfield *MARC_create_subfield(size_t token_length, char *token);
 void marc_chomp(char *s);
-
+int control_field_count_for(char *tag, Record *record);
 
 int MARC_get_next_raw(char *raw_record, FILE *fp) {
     int i = 0;
@@ -296,4 +296,37 @@ int get_subfield_count(size_t data_len, char *data) {
  */
 void marc_chomp(char *s) {
     s[strcspn(s, "\x1D\x1E\x1F")] = '\0';
+}
+
+
+int MARC_control_field_count_for(char *tag, Record *record) {
+    int i, j, count = 0;
+
+    // Loop over each ControlField in the record.
+    for (i = 0; i < record->cf_count; i++) {
+        // Loop over each char in the current ControlField tag, comparing it to tag of interest.
+        for (j = 0; j < 3; j++)
+            if (record->control_fields[i].tag[j] != tag[j])
+                break;
+
+        if (j == 3)
+            count++;
+    }
+    return count;
+}
+
+
+void MARC_get_control_fields_for(char *tag, size_t cf_count, ControlField *control_fields[], Record *record) {
+    int i, j, matching_cf_index = 0;
+
+    for (i = 0; i < record->cf_count; i++) {
+        for (j = 0; j < 3; j++)
+            if (record->control_fields[i].tag[j] != tag[j])
+                break;
+
+        if (j == 3) {
+            control_fields[matching_cf_index] = &record->control_fields[i];
+            matching_cf_index++;
+        }
+    }
 }

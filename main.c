@@ -14,8 +14,11 @@ int main(int argc, char *argv[]) {
     record_raw = malloc(100000);
     status = MARC_get_next_raw(record_raw, fp);
 
-    while (status != EOF)
+    int record_count = 0;
+    while (status != EOF && record_count < 10)
     {
+        record_count++;
+
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
@@ -28,6 +31,13 @@ int main(int argc, char *argv[]) {
                 printf(" $%c %s", record->data_fields[i].subfields[j].code, record->data_fields[i].subfields[j].value);
             puts("");
         }
+        puts("");
+
+        int cf_count = MARC_control_field_count_for("007", record);
+        ControlField *control_fields[cf_count];
+        MARC_get_control_fields_for("007", cf_count, control_fields, record);
+        for (int i = 0; i < cf_count; i++)
+            printf("%s %s\n", control_fields[i]->tag, control_fields[i]->value);
         puts("");
 
         MARC_free_record(record);

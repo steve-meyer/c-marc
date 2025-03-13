@@ -40,5 +40,7 @@ typedef struct {
 int MARC_get_next_raw(char *raw_record, FILE *fp);
 Record* MARC_get_record(char *record_raw);
 void MARC_free_record(Record *record);
+int MARC_control_field_count_for(char *tag, Record *record);
+void MARC_get_control_fields_for(char *tag, size_t cf_count, ControlField *control_fields[], Record *record);
 
 #endif
