@@ -1,4 +1,5 @@
 #include "marc.h"
+#include "collections.h"
 
 
 // Non-public interface helpers not in marc.h

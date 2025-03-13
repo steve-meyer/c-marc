@@ -8,11 +8,14 @@ COMPILE_OBJECT = gcc -Wall -c -o $@ $<
 
 all: $(PROGRAM)
 
-$(PROGRAM): main.c main.h marc.o
+$(PROGRAM): main.c main.h marc.o collections.o
 	$(COMPILE_PROGRAM) marc.o
 
 marc.o: marc.c marc.h
 	$(COMPILE_OBJECT)
 
+collections.o: collections.c
+	$(COMPILE_OBJECT)
+
 clean:
-	@rm -vf $(PROGRAM) marc.o
+	@rm -vf $(PROGRAM) marc.o collections.o
