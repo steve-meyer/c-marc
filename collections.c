@@ -1,246 +1,197 @@
+// Simple hash table implemented in C.
+
 #include "collections.h"
 
+#include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
-int next_prime(int x);
-int is_prime(const int x);
+// Hash table entry (slot may be filled or empty).
+typedef struct {
+    const char* key;  // key is NULL if this slot is empty
+    void* value;
+} ht_entry;
 
-static HashTableItem HT_DELETED_ITEM = {NULL, NULL};
+// Hash table structure: create with ht_create, free with ht_destroy.
+struct ht {
+    ht_entry* entries;  // hash slots
+    size_t capacity;    // size of _entries array
+    size_t length;      // number of items in hash table
+};
 
-static HashTableItem* HT_new_item(const char *key, const char *value) {
-    HashTableItem *item = malloc(sizeof(HashTableItem));
+#define INITIAL_CAPACITY 16  // must not be zero
 
-    item->key = strdup(key);
-    item->value = strdup(value);
+ht* ht_create(void) {
+    // Allocate space for hash table struct.
+    ht* table = malloc(sizeof(ht));
+    if (table == NULL) {
+        return NULL;
+    }
+    table->length = 0;
+    table->capacity = INITIAL_CAPACITY;
 
-    return item;
+    // Allocate (zero'd) space for entry buckets.
+    table->entries = calloc(table->capacity, sizeof(ht_entry));
+    if (table->entries == NULL) {
+        free(table); // error, free table before we return!
+        return NULL;
+    }
+    return table;
 }
 
-
-static void HT_delete_item(HashTableItem *item) {
-    free(item->key);
-    free(item->value);
-    free(item);
-}
-
-
-static HashTable* HT_new_sized(const int base_size) {
-    HashTable *hash_table = malloc(sizeof(HashTable));
-    hash_table->base_size = base_size;
-
-    hash_table->size = next_prime(hash_table->base_size);
-    hash_table->count = 0;
-    hash_table->items = calloc((size_t)hash_table->size, sizeof(HashTableItem*));
-
-    return hash_table;
-}
-
-
-static void HT_resize(HashTable *hash_table, const int base_size) {
-    if (base_size < HT_INITIAL_BASE_SIZE)
-        return;
-
-    HashTable *new_hash_table = HT_new_sized(base_size);
-
-    for (int i = 0; i < hash_table->size; i++) {
-        HashTableItem *item = hash_table->items[i];
-        if (item != NULL && item != &HT_DELETED_ITEM) {
-            HT_insert(new_hash_table, item->key, item->value);
-        }
+void ht_destroy(ht* table) {
+    // First free allocated keys.
+    for (size_t i = 0; i < table->capacity; i++) {
+        free((void*)table->entries[i].key);
     }
 
-    hash_table->base_size = new_hash_table->base_size;
-    hash_table->count = new_hash_table->count;
-
-    // Last step will be to delete the new hash table, so swap the values.
-    const int tmp_size = hash_table->size;
-    hash_table->size = new_hash_table->size;
-    new_hash_table->size = tmp_size;
-
-    HashTableItem **tmp_items = hash_table->items;
-    hash_table->items = new_hash_table->items;
-    new_hash_table->items = tmp_items;
-
-    HT_delete_hash_table(new_hash_table);
+    // Then free entries array and table itself.
+    free(table->entries);
+    free(table);
 }
 
+#define FNV_OFFSET 14695981039346656037UL
+#define FNV_PRIME 1099511628211UL
 
-static void HT_resize_up(HashTable *hash_table) {
-    const int new_size = hash_table->size * 2;
-    HT_resize(hash_table, new_size);
+// Return 64-bit FNV-1a hash for key (NUL-terminated). See description:
+// https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
+static uint64_t hash_key(const char* key) {
+    uint64_t hash = FNV_OFFSET;
+    for (const char* p = key; *p; p++) {
+        hash ^= (uint64_t)(unsigned char)(*p);
+        hash *= FNV_PRIME;
+    }
+    return hash;
 }
 
+void* ht_get(ht* table, const char* key) {
+    // AND hash with capacity-1 to ensure it's within entries array.
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t)(hash & (uint64_t)(table->capacity - 1));
 
-static void HT_resize_down(HashTable *hash_table) {
-    const int new_size = hash_table->size / 2;
-    HT_resize(hash_table, new_size);
-}
-
-
-HashTable* HT_new() {
-    return HT_new_sized(HT_INITIAL_BASE_SIZE);
-}
-
-
-void HT_delete_hash_table(HashTable *hash_table) {
-    for (int i = 0; i < hash_table->size; i++) {
-        HashTableItem *item = hash_table->items[i];
-        if (item != NULL) {
-            HT_delete_item(item);
+    // Loop till we find an empty entry.
+    while (table->entries[index].key != NULL) {
+        if (strcmp(key, table->entries[index].key) == 0) {
+            // Found key, return value.
+            return table->entries[index].value;
+        }
+        // Key wasn't in this slot, move to next (linear probing).
+        index++;
+        if (index >= table->capacity) {
+            // At end of entries array, wrap around.
+            index = 0;
         }
     }
-
-    free(hash_table->items);
-    free(hash_table);
-}
-
-
-/**
- * str: the string to hash
- * a: a prime number larger than the size of the alphabet
- * bucket_size: the number of buckets currently in the hash table, will be modulo'd to get in range
- */
-static int HT_hash(const char *str, const int a_prime, const int bucket_size) {
-    long hash = 0;
-    const int len = strlen(str);
-
-    for (int i = 0; i < len; i++)
-        hash += (long) pow(a_prime, len - (i + 1)) * str[i];
-
-    hash = hash % bucket_size;
-
-    return (int) hash;
-}
-
-
-static int HT_get_hash(const char *str, const int num_buckets, const int attempt) {
-    const int hash_a = HT_hash(str, HT_PRIME_1, num_buckets);
-          int hash_b = HT_hash(str, HT_PRIME_2, num_buckets);
-
-    if (hash_b % num_buckets == 0)
-        hash_b = 1;
-
-    return (hash_a + (attempt * hash_b)) % num_buckets;
-}
-
-
-void HT_insert(HashTable *hash_table, const char *key, const char *value) {
-    const int load = hash_table->count * 100 / hash_table->size;
-    if (load > 70)
-        HT_resize_up(hash_table);
-
-    HashTableItem *item = HT_new_item(key, value);
-
-    int index = HT_get_hash(item->key, hash_table->size, 0);
-    HashTableItem *current = hash_table->items[index];
-
-    int i = 1;
-    while (current != NULL)
-    {
-        if (current != &HT_DELETED_ITEM) {
-            if (strcmp(current->key, key) == 0) {
-                HT_delete_item(current);
-                hash_table->items[index] = item;
-                return;
-            }
-        }
-        index = HT_get_hash(item->key, hash_table->size, i);
-        current = hash_table->items[index];
-        i++;
-    }
-
-    hash_table->items[index] = item;
-    hash_table->count++;
-}
-
-
-char* HT_find(HashTable *hash_table, const char *key) {
-    int index = HT_get_hash(key, hash_table->size, 0);
-    HashTableItem *item = hash_table->items[index];
-
-    int i = 1;
-    while (item != NULL)
-    {
-        if (item != &HT_DELETED_ITEM) {
-            if (strcmp(item->key, key) == 0) {
-                return item->value;
-            }
-        }
-
-        index = HT_get_hash(key, hash_table->size, i);
-        item = hash_table->items[index];
-        i++;
-    }
-
     return NULL;
 }
 
+// Internal function to set an entry (without expanding table).
+static const char* ht_set_entry(ht_entry* entries, size_t capacity,
+        const char* key, void* value, size_t* plength) {
+    // AND hash with capacity-1 to ensure it's within entries array.
+    uint64_t hash = hash_key(key);
+    size_t index = (size_t)(hash & (uint64_t)(capacity - 1));
 
-void HT_delete(HashTable *hash_table, const char *key) {
-    const int load = hash_table->count * 100 / hash_table->size;
-    if (load < 30)
-        HT_resize_down(hash_table);
-
-    int index = HT_get_hash(key, hash_table->size, 0);
-    HashTableItem *item = hash_table->items[index];
-
-    int i = 1;
-    while (item != NULL)
-    {
-        if (item != &HT_DELETED_ITEM) {
-            if (strcmp(item->key, key) == 0) {
-                HT_delete_item(item);
-                hash_table->items[index] = &HT_DELETED_ITEM;
-                hash_table->count--;
-                return;
-            }
+    // Loop till we find an empty entry.
+    while (entries[index].key != NULL) {
+        if (strcmp(key, entries[index].key) == 0) {
+            // Found key (it already exists), update value.
+            entries[index].value = value;
+            return entries[index].key;
         }
-
-        index = HT_get_hash(key, hash_table->size, i);
-        item = hash_table->items[index];
-        i++;
+        // Key wasn't in this slot, move to next (linear probing).
+        index++;
+        if (index >= capacity) {
+            // At end of entries array, wrap around.
+            index = 0;
+        }
     }
+
+    // Didn't find key, allocate+copy if needed, then insert it.
+    if (plength != NULL) {
+        key = strdup(key);
+        if (key == NULL) {
+            return NULL;
+        }
+        (*plength)++;
+    }
+    entries[index].key = (char*)key;
+    entries[index].value = value;
+    return key;
 }
 
+// Expand hash table to twice its current size. Return true on success,
+// false if out of memory.
+static bool ht_expand(ht* table) {
+    // Allocate new entries array.
+    size_t new_capacity = table->capacity * 2;
+    if (new_capacity < table->capacity) {
+        return false;  // overflow (capacity would be too big)
+    }
+    ht_entry* new_entries = calloc(new_capacity, sizeof(ht_entry));
+    if (new_entries == NULL) {
+        return false;
+    }
 
-Node* List_add(struct Node *head, void *data, size_t data_size) {
-    Node *new = malloc(sizeof(Node));
+    // Iterate entries, move all non-empty ones to new table's entries.
+    for (size_t i = 0; i < table->capacity; i++) {
+        ht_entry entry = table->entries[i];
+        if (entry.key != NULL) {
+            ht_set_entry(new_entries, new_capacity, entry.key,
+                         entry.value, NULL);
+        }
+    }
 
-    new->data = malloc(data_size);
-    new->next = head;
-
-    memcpy(new->data, data, data_size);
-
-    return new;
+    // Free old entries array and update this table's details.
+    free(table->entries);
+    table->entries = new_entries;
+    table->capacity = new_capacity;
+    return true;
 }
 
+const char* ht_set(ht* table, const char* key, void* value) {
+    assert(value != NULL);
+    if (value == NULL) {
+        return NULL;
+    }
 
-/**
- * Return whether x is prime.
- *
- * Returns:
- *   1  - prime
- *   0  - not prime
- *  -1  - undefined (i.e., x < 2)
- */
-int is_prime(const int x) {
-    if (x < 2) return -1;
-    if (x < 4) return 1;
-    if ((x % 2) == 0) return 0;
+    // If length will exceed half of current capacity, expand it.
+    if (table->length >= table->capacity / 2) {
+        if (!ht_expand(table)) {
+            return NULL;
+        }
+    }
 
-    for (int i = 3; i <= floor(sqrt((double) x)); i += 1)
-        if ((x % i) == 0)
-            return 0;
-
-    return 1;
+    // Set entry and update length.
+    return ht_set_entry(table->entries, table->capacity, key, value,
+                        &table->length);
 }
 
+size_t ht_length(ht* table) {
+    return table->length;
+}
 
-/**
- * Return the next prime number after x, or x if x is prime
- */
-int next_prime(int x) {
-    while(is_prime(x) != 1)
-        x++;
+hti ht_iterator(ht* table) {
+    hti it;
+    it._table = table;
+    it._index = 0;
+    return it;
+}
 
-    return x;
+bool ht_next(hti* it) {
+    // Loop till we've hit end of entries array.
+    ht* table = it->_table;
+    while (it->_index < table->capacity) {
+        size_t i = it->_index;
+        it->_index++;
+        if (table->entries[i].key != NULL) {
+            // Found next non-empty item, update iterator key and value.
+            ht_entry entry = table->entries[i];
+            it->key = entry.key;
+            it->value = entry.value;
+            return true;
+        }
+    }
+    return false;
 }
