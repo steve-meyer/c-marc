@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "collections.h"
 
 #define LEADER_LENGTH 24
 #define DIRECTORY_ENTRY_LENGTH 12
@@ -33,7 +34,7 @@ typedef struct {
   char *leader;
   int cf_count;
   int df_count;
-  ControlField *control_fields;
+  ht *control_fields;
   DataField *data_fields;
 } Record;
 

@@ -22,22 +22,15 @@ int main(int argc, char *argv[]) {
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
-        for (int i = 0; i < record->cf_count; i++)
-            printf("%s %s\n", record->control_fields[i].tag, record->control_fields[i].value);
+        ControlField *field = (ControlField *)ht_get(record->control_fields, "001");
+        printf("%s %s\n", field->tag, field->value);
 
-        for (int i = 0; i < record->df_count; i++) {
-            printf("%s %c%c", record->data_fields[i].tag, record->data_fields[i].i1, record->data_fields[i].i2);
-            for (int j = 0; j < record->data_fields[i].sf_count; j++)
-                printf(" $%c %s", record->data_fields[i].subfields[j].code, record->data_fields[i].subfields[j].value);
-            puts("");
+        hti cf_iter = ht_iterator(record->control_fields);
+        while (ht_next(&cf_iter))
+        {
+            ControlField *cf = (ControlField *)cf_iter.value;
+            printf("%s %s\n", cf->tag, cf->value);
         }
-        puts("");
-
-        int cf_count = MARC_control_field_count_for("007", record);
-        ControlField *control_fields[cf_count];
-        MARC_get_control_fields_for("007", cf_count, control_fields, record);
-        for (int i = 0; i < cf_count; i++)
-            printf("%s %s\n", control_fields[i]->tag, control_fields[i]->value);
         puts("");
 
         MARC_free_record(record);

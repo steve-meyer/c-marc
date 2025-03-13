@@ -1,5 +1,4 @@
 #include "marc.h"
-#include "collections.h"
 
 
 // Non-public interface helpers not in marc.h
@@ -15,6 +14,7 @@ DataField *MARC_create_data_field(char *tag, size_t subfield_count, char *data);
 Subfield *MARC_create_subfield(size_t token_length, char *token);
 void marc_chomp(char *s);
 int control_field_count_for(char *tag, Record *record);
+
 
 int MARC_get_next_raw(char *raw_record, FILE *fp) {
     int i = 0;
@@ -45,8 +45,8 @@ Record* MARC_get_record(char *record_raw) {
     char directory[directory_length + 1];
     MARC_get_directory(directory, directory_length, record_raw);
 
+    record->control_fields = ht_create();
     record->cf_count = MARC_get_control_field_count(directory_length, directory);
-    record->control_fields = malloc(record->cf_count * sizeof(ControlField));
     MARC_get_control_fields(record, directory_length, directory, record_raw);
 
     record->df_count = MARC_get_data_field_count(directory_length, directory);
@@ -58,14 +58,7 @@ Record* MARC_get_record(char *record_raw) {
 
 
 void MARC_free_record(Record *record) {
-    for (int i = 0; i < record->cf_count; i++) {
-        if (record->control_fields[i].tag)
-            free(record->control_fields[i].tag);
-
-        if (record->control_fields[i].value)
-            free(record->control_fields[i].value);
-    }
-    free(record->control_fields);
+    ht_destroy(record->control_fields);
 
     for (int i = 0; i < record->df_count; i++) {
         if (record->data_fields[i].tag)
@@ -194,7 +187,9 @@ void MARC_get_control_fields(Record *record, size_t directory_length, char *dire
         strcpy(control_field->value, data);
         marc_chomp(control_field->value);
 
-        record->control_fields[i] = *control_field;
+        printf("%s %s\n", control_field->tag, control_field->value);
+
+        ht_set(record->control_fields, control_field->tag, control_field);
     }
 }
 
@@ -297,37 +292,4 @@ int get_subfield_count(size_t data_len, char *data) {
  */
 void marc_chomp(char *s) {
     s[strcspn(s, "\x1D\x1E\x1F")] = '\0';
-}
-
-
-int MARC_control_field_count_for(char *tag, Record *record) {
-    int i, j, count = 0;
-
-    // Loop over each ControlField in the record.
-    for (i = 0; i < record->cf_count; i++) {
-        // Loop over each char in the current ControlField tag, comparing it to tag of interest.
-        for (j = 0; j < 3; j++)
-            if (record->control_fields[i].tag[j] != tag[j])
-                break;
-
-        if (j == 3)
-            count++;
-    }
-    return count;
-}
-
-
-void MARC_get_control_fields_for(char *tag, size_t cf_count, ControlField *control_fields[], Record *record) {
-    int i, j, matching_cf_index = 0;
-
-    for (i = 0; i < record->cf_count; i++) {
-        for (j = 0; j < 3; j++)
-            if (record->control_fields[i].tag[j] != tag[j])
-                break;
-
-        if (j == 3) {
-            control_fields[matching_cf_index] = &record->control_fields[i];
-            matching_cf_index++;
-        }
-    }
 }
