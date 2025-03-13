@@ -4,6 +4,22 @@
 #include "collections.h"
 
 
+Node* Node_create(size_t data_size, void *data) {
+    Node *next = malloc(sizeof(Node));
+    next->data = malloc(data_size);
+    next->data = data;
+    next->next = NULL;
+
+    return next;
+}
+
+
+void Node_destroy(Node *node) {
+    free(node->data);
+    free(node);
+}
+
+
 HashTable* HT_create(void) {
     // Allocate space for hash table struct.
     HashTable* table = malloc(sizeof(HashTable));

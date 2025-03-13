@@ -17,21 +17,27 @@
 
 
 typedef struct {
-    const char* key; // key is NULL if this slot is empty
+    const char *key; // key is NULL if this slot is empty
     void* value;
 } HashTableEntry;
 
 
 // Hash table structure: create with ht_create, free with ht_destroy.
-struct HashTable {
-    HashTableEntry* entries;  // hash slots
-    size_t capacity;    // size of _entries array
-    size_t length;      // number of items in hash table
-};
+typedef struct {
+    HashTableEntry *entries;  // hash slots
+    size_t capacity;          // size of _entries array
+    size_t length;            // number of items in hash table
+} HashTable;
 
 
-// Hash table structure: create with ht_create, free with ht_destroy.
-typedef struct HashTable HashTable;
+typedef struct Node {
+    void *data;
+    struct Node *next;
+} Node;
+
+
+// Create linked list node and return a pointer to it.
+Node* Node_create(size_t data_size, void *data);
 
 
 // Create hash table and return pointer to it, or NULL if out of memory.

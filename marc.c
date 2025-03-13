@@ -1,4 +1,5 @@
 #include "marc.h"
+#include "collections.h"
 
 
 // Non-public interface helpers not in marc.h
@@ -58,7 +59,7 @@ Record* MARC_get_record(char *record_raw) {
 
 
 void MARC_free_record(Record *record) {
-    HT_destroy(record->control_fields);
+    // HT_destroy(record->control_fields);
 
     for (int i = 0; i < record->df_count; i++) {
         if (record->data_fields[i].tag)
@@ -187,9 +188,16 @@ void MARC_get_control_fields(Record *record, size_t directory_length, char *dire
         strcpy(control_field->value, data);
         marc_chomp(control_field->value);
 
-        printf("%s %s\n", control_field->tag, control_field->value);
+        Node *node = Node_create(sizeof(ControlField), control_field);
+        Node *tag_list = (Node *)HT_get(record->control_fields, control_field->tag);
+        if (tag_list == NULL) {
+            HT_set(record->control_fields, control_field->tag, node);
+        } else {
+            while (tag_list->next != NULL)
+                tag_list = tag_list->next;
 
-        HT_set(record->control_fields, control_field->tag, control_field);
+            tag_list->next = node;
+        }
     }
 }
 

@@ -15,25 +15,27 @@ int main(int argc, char *argv[]) {
     status = MARC_get_next_raw(record_raw, fp);
 
     int record_count = 0;
-    while (status != EOF && record_count < 10)
+    while (status != EOF && record_count < 100)
     {
         record_count++;
 
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
-        ControlField *field = (ControlField *)HT_get(record->control_fields, "001");
-        printf("%s %s\n", field->tag, field->value);
-
         HashTableIterator cf_iter = HT_iterator(record->control_fields);
         while (HT_next(&cf_iter))
         {
-            ControlField *cf = (ControlField *)cf_iter.value;
-            printf("%s %s\n", cf->tag, cf->value);
+            Node *control_field = (Node *)cf_iter.value;
+            while (control_field != NULL)
+            {
+                ControlField *field = (ControlField *)control_field->data;
+                printf("%s %s\n", field->tag, field->value);
+                control_field = control_field->next;
+            }
         }
         puts("");
 
-        MARC_free_record(record);
+        // MARC_free_record(record);
         status = MARC_get_next_raw(record_raw, fp);
     }
 
