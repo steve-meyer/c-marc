@@ -34,7 +34,7 @@ typedef struct {
   char *leader;
   int cf_count;
   int df_count;
-  ht *control_fields;
+  HashTable *control_fields;
   DataField *data_fields;
 } Record;
 

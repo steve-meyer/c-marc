@@ -45,7 +45,7 @@ Record* MARC_get_record(char *record_raw) {
     char directory[directory_length + 1];
     MARC_get_directory(directory, directory_length, record_raw);
 
-    record->control_fields = ht_create();
+    record->control_fields = HT_create();
     record->cf_count = MARC_get_control_field_count(directory_length, directory);
     MARC_get_control_fields(record, directory_length, directory, record_raw);
 
@@ -58,7 +58,7 @@ Record* MARC_get_record(char *record_raw) {
 
 
 void MARC_free_record(Record *record) {
-    ht_destroy(record->control_fields);
+    HT_destroy(record->control_fields);
 
     for (int i = 0; i < record->df_count; i++) {
         if (record->data_fields[i].tag)
@@ -189,7 +189,7 @@ void MARC_get_control_fields(Record *record, size_t directory_length, char *dire
 
         printf("%s %s\n", control_field->tag, control_field->value);
 
-        ht_set(record->control_fields, control_field->tag, control_field);
+        HT_set(record->control_fields, control_field->tag, control_field);
     }
 }
 

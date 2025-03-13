@@ -22,11 +22,11 @@ int main(int argc, char *argv[]) {
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
-        ControlField *field = (ControlField *)ht_get(record->control_fields, "001");
+        ControlField *field = (ControlField *)HT_get(record->control_fields, "001");
         printf("%s %s\n", field->tag, field->value);
 
-        hti cf_iter = ht_iterator(record->control_fields);
-        while (ht_next(&cf_iter))
+        HashTableIterator cf_iter = HT_iterator(record->control_fields);
+        while (HT_next(&cf_iter))
         {
             ControlField *cf = (ControlField *)cf_iter.value;
             printf("%s %s\n", cf->tag, cf->value);
