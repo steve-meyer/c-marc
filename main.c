@@ -14,11 +14,8 @@ int main(int argc, char *argv[]) {
     record_raw = malloc(100000);
     status = MARC_get_next_raw(record_raw, fp);
 
-    int record_count = 0;
-    while (status != EOF && record_count < 100)
+    while (status != EOF)
     {
-        record_count++;
-
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
