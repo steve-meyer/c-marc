@@ -1,4 +1,5 @@
-// Simple hash table implemented in C.
+// Collections: simple implementations for hash table and linked list data structures.
+// Hash table implementation based on: https://github.com/benhoyt/ht
 
 #ifndef __COLLECTIONS__
 #define __COLLECTIONS__
@@ -30,6 +31,17 @@ typedef struct {
 } HashTable;
 
 
+// Hash table iterator: create with ht_iterator, iterate with ht_next.
+typedef struct {
+    const char* key; // current key
+    void* value;     // current value
+
+    // Don't use these fields directly.
+    HashTable* _table; // reference to hash table being iterated
+    size_t _index;     // current index into ht._entries
+} HashTableIterator;
+
+
 typedef struct Node {
     void *data;
     struct Node *next;
@@ -37,7 +49,11 @@ typedef struct Node {
 
 
 // Create linked list node and return a pointer to it.
-Node* Node_create(size_t data_size, void *data);
+Node* Node_create(void *data);
+
+
+// Free Node from memory.
+void Node_destroy(Node *node);
 
 
 // Create hash table and return pointer to it, or NULL if out of memory.
@@ -62,17 +78,6 @@ const char* HT_set(HashTable* table, const char* key, void* value);
 
 // Return number of items in hash table.
 size_t HT_length(HashTable* table);
-
-
-// Hash table iterator: create with ht_iterator, iterate with ht_next.
-typedef struct {
-    const char* key;  // current key
-    void* value;      // current value
-
-    // Don't use these fields directly.
-    HashTable* _table;       // reference to hash table being iterated
-    size_t _index;    // current index into ht._entries
-} HashTableIterator;
 
 
 // Return new hash table iterator (for use with ht_next).

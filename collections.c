@@ -1,12 +1,8 @@
-// Collections: simple implementations for hash map and linked list data structures.
-// Hash table implementation based on: https://github.com/benhoyt/ht
-
 #include "collections.h"
 
 
-Node* Node_create(size_t data_size, void *data) {
+Node* Node_create(void *data) {
     Node *next = malloc(sizeof(Node));
-    next->data = malloc(data_size);
     next->data = data;
     next->next = NULL;
 

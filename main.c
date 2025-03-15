@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         }
         puts("");
 
-        // MARC_free_record(record);
+        MARC_free_record(record);
         status = MARC_get_next_raw(record_raw, fp);
     }
 
