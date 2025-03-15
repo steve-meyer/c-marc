@@ -33,6 +33,23 @@ int main(int argc, char *argv[]) {
                 control_field = control_field->next;
             }
         }
+
+        HashTableIterator df_iter = HT_iterator(record->data_fields);
+        while (HT_next(&df_iter))
+        {
+            Node *data_field = (Node *)df_iter.value;
+            while (data_field != NULL)
+            {
+                DataField *field = (DataField *)data_field->data;
+                printf("%s %c%c", field->tag, field->i1, field->i2);
+                for (int i = 0; i < field->sf_count; i++)
+                    printf(" $%c %s", field->subfields[i].code, field->subfields[i].value);
+                puts("");
+                data_field = data_field->next;
+            }
+
+        }
+
         puts("");
 
         MARC_free_record(record);

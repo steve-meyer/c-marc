@@ -47,9 +47,8 @@ Record* MARC_get_record(char *record_raw) {
     record->control_fields = HT_create();
     MARC_get_control_fields(record, directory_length, directory, record_raw);
 
-    // record->df_count = MARC_get_data_field_count(directory_length, directory);
-    // record->data_fields = malloc(record->df_count * sizeof(DataField));
-    // MARC_get_data_fields(record, directory_length, directory, record_raw);
+    record->data_fields = HT_create();
+    MARC_get_data_fields(record, directory_length, directory, record_raw);
 
     return record;
 }
@@ -60,35 +59,48 @@ void MARC_free_record(Record *record) {
     // table entries and then and then traverse each node in each entry's list to free. Linked
     // list nodes will be either ControlField or DataField structs.
 
-    HashTableIterator cf_itr = HT_iterator(record->control_fields);
-    Node *tmp;
-    while (HT_next(&cf_itr))
-    {
-        Node *cf_node = (Node *)cf_itr.value;
-        tmp = cf_node;
-        cf_node = cf_node->next;
+    if (record->control_fields != NULL) {
+        HashTableIterator cf_itr = HT_iterator(record->control_fields);
+        Node *tmp;
+        while (HT_next(&cf_itr))
+        {
+            Node *cf_node = (Node *)cf_itr.value;
+            tmp = cf_node;
+            cf_node = cf_node->next;
 
-        ControlField *node_data = tmp->data;
-        free(node_data->tag);
-        free(node_data->value);
-        free(node_data);
+            ControlField *node_data = tmp->data;
+            free(node_data->tag);
+            free(node_data->value);
+            free(node_data);
 
-        free(tmp);
+            free(tmp);
+        }
+        HT_destroy(record->control_fields);
     }
-    HT_destroy(record->control_fields);
 
-    // for (int i = 0; i < record->df_count; i++) {
-    //     if (record->data_fields[i].tag)
-    //         free(record->data_fields[i].tag);
+    if (record->data_fields != NULL) {
+        HashTableIterator df_itr = HT_iterator(record->data_fields);
+        Node *tmp;
+        while (HT_next(&df_itr))
+        {
+            Node *df_node = (Node *)df_itr.value;
+            tmp = df_node;
+            df_node = df_node->next;
 
-    //     for (int j = 0; j < record->data_fields[i].sf_count; j++) {
-    //         if (record->data_fields[i].subfields[j].value)
-    //             free(record->data_fields[i].subfields[j].value);
-    //     }
-    //     if (record->data_fields[i].subfields)
-    //         free(record->data_fields[i].subfields);
-    // }
-    // free(record->data_fields);
+            DataField *node_data_field = tmp->data;
+            if (node_data_field->tag)
+                free(node_data_field->tag);
+
+            for (int i = 0; i < node_data_field->sf_count; i++) {
+                if (node_data_field->subfields[i].value)
+                    free(node_data_field->subfields[i].value);
+            }
+            free(node_data_field);
+
+            free(tmp);
+        }
+        HT_destroy(record->data_fields);
+    }
 
     if (record->leader)
         free(record->leader);
@@ -124,7 +136,6 @@ void MARC_get_directory(char *directory, int directory_length, char *record_raw)
 
 void MARC_get_control_fields(Record *record, size_t directory_length, char *directory, char *record_raw) {
     int field_count = (directory_length - 1) / 12;
-    // int i, offset;
 
     for (int i = 0, offset = 0; i < field_count; i++, offset += DIRECTORY_ENTRY_LENGTH) {
         char entry[DIRECTORY_ENTRY_LENGTH + 1];
@@ -176,9 +187,8 @@ void MARC_get_control_fields(Record *record, size_t directory_length, char *dire
 
 void MARC_get_data_fields(Record *record, size_t directory_length, char *directory, char *record_raw) {
     int field_count = (directory_length - 1) / 12;
-    int i, offset, cf_count = 0;
 
-    for (i = 0, offset = 0; i < field_count; i++, offset += DIRECTORY_ENTRY_LENGTH) {
+    for (int i = 0, offset = 0; i < field_count; i++, offset += DIRECTORY_ENTRY_LENGTH) {
         char entry[DIRECTORY_ENTRY_LENGTH + 1];
         strncpy(entry, directory + offset, DIRECTORY_ENTRY_LENGTH);
         entry[DIRECTORY_ENTRY_LENGTH] = '\0';
@@ -188,10 +198,8 @@ void MARC_get_data_fields(Record *record, size_t directory_length, char *directo
         tag[3] = '\0';
 
         int field_num = atoi(tag);
-        if (field_num < 10) {
-            cf_count++;
+        if (field_num < 10)
             continue;
-        }
 
         char field_length_s[5];
         strncpy(field_length_s, entry + 3, 5);
@@ -203,11 +211,23 @@ void MARC_get_data_fields(Record *record, size_t directory_length, char *directo
         field_data_addr_s[5] = '\0';
         int data_addr = atoi(field_data_addr_s);
 
-        char data[data_length];
+        char data[data_length + 1];
         strncpy(data, record_raw + LEADER_LENGTH + directory_length + data_addr, data_length);
+        data[data_length] = '\0';
 
         int subfield_count = get_subfield_count(data_length, data);
-        record->data_fields[i - cf_count] = *MARC_create_data_field(tag, subfield_count, data);
+        DataField *data_field = MARC_create_data_field(tag, subfield_count, data);
+
+        Node *node = Node_create(data_field);
+        Node *tag_list = (Node *)HT_get(record->data_fields, data_field->tag);
+        if (tag_list == NULL) {
+            HT_set(record->data_fields, data_field->tag, node);
+        } else {
+            while (tag_list->next != NULL)
+                tag_list = tag_list->next;
+
+            tag_list->next = node;
+        }
     }
 }
 

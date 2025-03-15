@@ -38,7 +38,7 @@ typedef struct {
 typedef struct {
   char *leader;
   HashTable *control_fields;
-  DataField *data_fields;
+  HashTable *data_fields;
 } Record;
 
 
