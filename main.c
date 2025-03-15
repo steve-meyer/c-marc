@@ -22,32 +22,45 @@ int main(int argc, char *argv[]) {
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
-        HashTableIterator cf_iter = HT_iterator(record->control_fields);
-        while (HT_next(&cf_iter))
+        char cf_tags[record->control_fields->length][4];
+        HashTableIterator cf_itr = HT_iterator(record->control_fields);
+        int i = 0;
+        while (HT_next(&cf_itr))
         {
-            Node *control_field = (Node *)cf_iter.value;
-            while (control_field != NULL)
+            strcpy(cf_tags[i], cf_itr.key);
+            i++;
+        }
+        qsort(cf_tags, record->control_fields->length, 4, string_cmp);
+        for (int i = 0; i < record->control_fields->length; i++) {
+            Node *cf_node = (Node *)HT_get(record->control_fields, cf_tags[i]);
+            while (cf_node != NULL)
             {
-                ControlField *field = (ControlField *)control_field->data;
+                ControlField *field = (ControlField *)cf_node->data;
                 printf("%s %s\n", field->tag, field->value);
-                control_field = control_field->next;
+                cf_node = cf_node->next;
             }
         }
 
-        HashTableIterator df_iter = HT_iterator(record->data_fields);
-        while (HT_next(&df_iter))
+        char df_tags[record->data_fields->length][4];
+        HashTableIterator df_itr = HT_iterator(record->data_fields);
+        int j = 0;
+        while (HT_next(&df_itr))
         {
-            Node *data_field = (Node *)df_iter.value;
-            while (data_field != NULL)
+            strcpy(df_tags[j], df_itr.key);
+            j++;
+        }
+        qsort(df_tags, record->data_fields->length, 4, string_cmp);
+        for (int i = 0; i < record->data_fields->length; i++) {
+            Node *df_node = (Node *)HT_get(record->data_fields, df_tags[i]);
+            while (df_node != NULL)
             {
-                DataField *field = (DataField *)data_field->data;
+                DataField *field = (DataField *)df_node->data;
                 printf("%s %c%c", field->tag, field->i1, field->i2);
                 for (int i = 0; i < field->sf_count; i++)
                     printf(" $%c %s", field->subfields[i].code, field->subfields[i].value);
                 puts("");
-                data_field = data_field->next;
+                df_node = df_node->next;
             }
-
         }
 
         puts("");

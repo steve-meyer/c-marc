@@ -293,3 +293,14 @@ int get_subfield_count(size_t data_len, char *data) {
 void marc_chomp(char *s) {
     s[strcspn(s, "\x1D\x1E\x1F")] = '\0';
 }
+
+
+/**
+ * Helper function for comparing strings (e.g., MARC field tags) for qsort.
+ */
+int string_cmp(const void *a, const void *b) {
+    const char *pa = (const char *)a;
+    const char *pb = (const char *)b;
+
+    return strcmp(pa, pb);
+}
