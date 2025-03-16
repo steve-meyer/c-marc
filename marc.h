@@ -9,10 +9,12 @@
 
 #define LEADER_LENGTH 24
 #define DIRECTORY_ENTRY_LENGTH 12
+#define TAG_LENGTH 3
 #define SUBFIELD_INDICATOR 0x1F
 #define END_OF_FIELD 0x1E
 #define END_OF_RECORD 0x1D
-
+#define CONTROL_FIELD_TYPE = 1
+#define DATA_FIELD_TYPE = 2
 
 typedef struct {
   char code;
@@ -45,6 +47,7 @@ typedef struct {
 int MARC_get_next_raw(char *raw_record, FILE *fp);
 Record* MARC_get_record(char *record_raw);
 void MARC_free_record(Record *record);
+void MARC_get_field_tags(char **tags, HashTable *fields, size_t count);
 
 int string_cmp(const void *a, const void *b);
 

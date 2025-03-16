@@ -19,15 +19,8 @@ int main(int argc, char *argv[]) {
         Record *record = MARC_get_record(record_raw);
         printf("LEADER %s\n", record->leader);
 
-        char cf_tags[record->control_fields->length][4];
-        HashTableIterator cf_itr = HT_iterator(record->control_fields);
-        int i = 0;
-        while (HT_next(&cf_itr))
-        {
-            strcpy(cf_tags[i], cf_itr.key);
-            i++;
-        }
-        qsort(cf_tags, record->control_fields->length, 4, string_cmp);
+        char **cf_tags = (char **)malloc(record->control_fields->length * sizeof(char *));
+        MARC_get_field_tags(cf_tags, record->control_fields, (size_t)record->control_fields->length);
         for (int i = 0; i < record->control_fields->length; i++) {
             Node *cf_node = (Node *)HT_get(record->control_fields, cf_tags[i]);
             while (cf_node != NULL)
@@ -38,15 +31,8 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        char df_tags[record->data_fields->length][4];
-        HashTableIterator df_itr = HT_iterator(record->data_fields);
-        int j = 0;
-        while (HT_next(&df_itr))
-        {
-            strcpy(df_tags[j], df_itr.key);
-            j++;
-        }
-        qsort(df_tags, record->data_fields->length, 4, string_cmp);
+        char **df_tags = (char **)malloc(record->data_fields->length * sizeof(char *));
+        MARC_get_field_tags(df_tags, record->data_fields, (size_t)record->data_fields->length);
         for (int i = 0; i < record->data_fields->length; i++) {
             Node *df_node = (Node *)HT_get(record->data_fields, df_tags[i]);
             while (df_node != NULL)

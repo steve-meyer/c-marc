@@ -109,6 +109,23 @@ void MARC_free_record(Record *record) {
 }
 
 
+/**
+ * Return a sorted list of either control or data field tags.
+ */
+void MARC_get_field_tags(char **tags, HashTable *fields, size_t count) {
+    HashTableIterator cf_itr = HT_iterator(fields);
+    int i = 0;
+    while (HT_next(&cf_itr))
+    {
+        tags[i] = (char *)malloc((TAG_LENGTH + 1) * sizeof(char));
+        strcpy(tags[i], cf_itr.key);
+        tags[i][TAG_LENGTH] = '\0';
+        i++;
+    }
+    qsort(tags, count, sizeof(tags[0]), string_cmp);
+}
+
+
 char* MARC_get_leader(char *record_raw) {
     char *leader = malloc(LEADER_LENGTH + 1);
 
@@ -299,8 +316,5 @@ void marc_chomp(char *s) {
  * Helper function for comparing strings (e.g., MARC field tags) for qsort.
  */
 int string_cmp(const void *a, const void *b) {
-    const char *pa = (const char *)a;
-    const char *pb = (const char *)b;
-
-    return strcmp(pa, pb);
+    return strcmp( *(const char**)a, *(const char**)b );
 }
