@@ -37,3 +37,14 @@ A `DataField` has:
 * An array of `Subfield`s
 
 A `Subfield` has a code (char) and value (string).
+
+### Interface
+
+The public interface for MARC processing functions have a prefix `MARC_`. See `marc.h`:
+
+* `MARC_get_next_raw`: given a string allocated 100k bytes (99,999 MARC record size limit + 1) and a file pointer, get the next record's bytes
+* `MARC_record_create`: given the bytes for a single record, create the `Record` structure
+* `MARC_free_record`: given a `Record` structure, free all allocated memory
+* `MARC_get_field_tags`: get a sorted list of either `ControlField` tags or `DataField` tags by passing a `Record` structure's corresponding field hash table
+
+The `collections.h` file defines the public interface for the hash table and linked list implementations used by this library.
