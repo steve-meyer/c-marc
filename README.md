@@ -4,7 +4,7 @@ MARC parsing library in C.
 
 ## About
 
-**Warning:** At the time of writing, this is an experimental learning project. Do not use this project for any production work.
+**Warning:** At the time of writing, this is an experimental learning project. Do not use this project for any production work. There is no error handling for malformed MARC records.
 
 ### Basic Usage
 
@@ -15,6 +15,9 @@ $ make clean
 $ make
 $ ./read_marc /path/to/marc/binary.mrc
 ```
+
+* Read only, no interface to create and modify MARC data
+* Works with binary MARC 21 format only
 
 ### Data Model
 
