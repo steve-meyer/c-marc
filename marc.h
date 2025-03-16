@@ -7,14 +7,6 @@
 #include "collections.h"
 
 
-#define LEADER_LENGTH 24
-#define DIRECTORY_ENTRY_LENGTH 12
-#define TAG_LENGTH 3
-#define SUBFIELD_INDICATOR 0x1F
-#define END_OF_FIELD 0x1E
-#define END_OF_RECORD 0x1D
-
-
 typedef struct {
   char code;
   char *value;

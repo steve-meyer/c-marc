@@ -2,10 +2,28 @@
 #include "collections.h"
 
 
+#define LEADER_LENGTH 24
+#define DIRECTORY_ENTRY_LENGTH 12
+#define TAG_LENGTH 3
+#define FIELD_LENGTH 4
+#define ADDRESS_LENGTH 5
+#define SUBFIELD_INDICATOR 0x1F
+#define END_OF_FIELD 0x1E
+#define END_OF_RECORD 0x1D
+
+
+typedef struct {
+    char tag[TAG_LENGTH + 1];
+    int data_length;
+    int data_addr;
+} DirectoryEntry;
+
+
 // Non-public interface helpers not in marc.h
 char* get_leader(char *record_raw);
 int get_data_address(char *leader);
 void get_directory(char *directory, int directory_length, char *record);
+DirectoryEntry* parse_directory_entry(char *directory, int offset);
 void append_field(Node *field_node, HashTable *fields, char *tag);
 void get_control_fields(Record *record, size_t directory_length, char *directory, char *record_raw);
 void get_data_fields(Record *record, size_t directory_length, char *directory, char *record_raw);
@@ -158,34 +176,18 @@ void get_control_fields(Record *record, size_t directory_length, char *directory
     int field_count = (directory_length - 1) / 12;
 
     for (int i = 0, offset = 0; i < field_count; i++, offset += DIRECTORY_ENTRY_LENGTH) {
-        char entry[DIRECTORY_ENTRY_LENGTH + 1];
-        strncpy(entry, directory + offset, DIRECTORY_ENTRY_LENGTH);
-        entry[DIRECTORY_ENTRY_LENGTH] = '\0';
-
-        char tag[4];
-        strncpy(tag, entry, 4);
-        tag[3] = '\0';
-
-        int field_num = atoi(tag);
-        if (field_num >= 10)
+        DirectoryEntry *directory_entry = parse_directory_entry(directory, offset);
+        if (atoi(directory_entry->tag) >= 10)
             return;
 
-        char field_length_s[5];
-        strncpy(field_length_s, entry + 3, 5);
-        field_length_s[4] = '\0';
-        int data_length = atoi(field_length_s);
+        char data[directory_entry->data_length];
+        strncpy(data, record_raw + LEADER_LENGTH + directory_length + directory_entry->data_addr, directory_entry->data_length);
 
-        char field_data_addr_s[6];
-        strncpy(field_data_addr_s, entry + 7, 6);
-        field_data_addr_s[5] = '\0';
-        int data_addr = atoi(field_data_addr_s);
-
-        char data[data_length];
-        strncpy(data, record_raw + LEADER_LENGTH + directory_length + data_addr, data_length);
-
-        ControlField *control_field = control_field_create(tag, data);
+        ControlField *control_field = control_field_create(directory_entry->tag, data);
         Node *node = Node_create(control_field);
-        append_field(node, record->control_fields, tag);
+        append_field(node, record->control_fields, directory_entry->tag);
+
+        free(directory_entry);
     }
 }
 
@@ -229,37 +231,45 @@ void get_data_fields(Record *record, size_t directory_length, char *directory, c
     int field_count = (directory_length - 1) / 12;
 
     for (int i = 0, offset = 0; i < field_count; i++, offset += DIRECTORY_ENTRY_LENGTH) {
-        char entry[DIRECTORY_ENTRY_LENGTH + 1];
-        strncpy(entry, directory + offset, DIRECTORY_ENTRY_LENGTH);
-        entry[DIRECTORY_ENTRY_LENGTH] = '\0';
-
-        char tag[4];
-        strncpy(tag, entry, 4);
-        tag[3] = '\0';
-
-        int field_num = atoi(tag);
-        if (field_num < 10)
+        DirectoryEntry *directory_entry = parse_directory_entry(directory, offset);
+        if (atoi(directory_entry->tag) < 10)
             continue;
 
-        char field_length_s[5];
-        strncpy(field_length_s, entry + 3, 5);
-        field_length_s[4] = '\0';
-        int data_length = atoi(field_length_s);
+        char data[directory_entry->data_length + 1];
+        strncpy(data, record_raw + LEADER_LENGTH + directory_length + directory_entry->data_addr, directory_entry->data_length);
+        data[directory_entry->data_length] = '\0';
 
-        char field_data_addr_s[6];
-        strncpy(field_data_addr_s, entry + 7, 6);
-        field_data_addr_s[5] = '\0';
-        int data_addr = atoi(field_data_addr_s);
-
-        char data[data_length + 1];
-        strncpy(data, record_raw + LEADER_LENGTH + directory_length + data_addr, data_length);
-        data[data_length] = '\0';
-
-        int subfield_count = get_subfield_count(data_length, data);
-        DataField *data_field = data_field_create(tag, subfield_count, data);
+        int subfield_count = get_subfield_count(directory_entry->data_length, data);
+        DataField *data_field = data_field_create(directory_entry->tag, subfield_count, data);
         Node *node = Node_create(data_field);
-        append_field(node, record->data_fields, tag);
+        append_field(node, record->data_fields, directory_entry->tag);
+
+        free(directory_entry);
     }
+}
+
+
+DirectoryEntry* parse_directory_entry(char *directory, int offset) {
+    char entry[DIRECTORY_ENTRY_LENGTH + 1];
+    strncpy(entry, directory + offset, DIRECTORY_ENTRY_LENGTH);
+    entry[DIRECTORY_ENTRY_LENGTH] = '\0';
+
+    DirectoryEntry *directory_entry = malloc(sizeof(DirectoryEntry));
+
+    strncpy(directory_entry->tag, entry, TAG_LENGTH + 1);
+    directory_entry->tag[3] = '\0';
+
+    char field_length_s[FIELD_LENGTH + 1];
+    strncpy(field_length_s, entry + TAG_LENGTH, FIELD_LENGTH + 1);
+    field_length_s[FIELD_LENGTH] = '\0';
+    directory_entry->data_length = atoi(field_length_s);
+
+    char field_data_addr_s[ADDRESS_LENGTH + 1];
+    strncpy(field_data_addr_s, entry + TAG_LENGTH + FIELD_LENGTH, ADDRESS_LENGTH + 1);
+    field_data_addr_s[ADDRESS_LENGTH] = '\0';
+    directory_entry->data_addr = atoi(field_data_addr_s);
+
+    return directory_entry;
 }
 
 
