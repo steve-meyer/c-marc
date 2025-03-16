@@ -6,9 +6,11 @@
 char* get_leader(char *record_raw);
 int get_data_address(char *leader);
 void get_directory(char *directory, int directory_length, char *record);
+void append_field(Node *field_node, HashTable *fields, char *tag);
 void get_control_fields(Record *record, size_t directory_length, char *directory, char *record_raw);
 void get_data_fields(Record *record, size_t directory_length, char *directory, char *record_raw);
 int get_subfield_count(size_t data_len, char *data);
+ControlField* control_field_create(char *tag, char *data);
 DataField *data_field_create(char *tag, size_t subfield_count, char *data);
 Subfield *subfield_create(size_t token_length, char *token);
 
@@ -181,25 +183,45 @@ void get_control_fields(Record *record, size_t directory_length, char *directory
         char data[data_length];
         strncpy(data, record_raw + LEADER_LENGTH + directory_length + data_addr, data_length);
 
-        ControlField *control_field = malloc(sizeof(ControlField));
-        control_field->tag = malloc(4);
-        control_field->value = malloc(strlen(data));
-        strcpy(control_field->tag, tag);
-        control_field->tag[3] = '\0';
-        strcpy(control_field->value, data);
-        marc_chomp(control_field->value);
-
+        ControlField *control_field = control_field_create(tag, data);
         Node *node = Node_create(control_field);
-        Node *tag_list = (Node *)HT_get(record->control_fields, control_field->tag);
-        if (tag_list == NULL) {
-            HT_set(record->control_fields, control_field->tag, node);
-        } else {
-            while (tag_list->next != NULL)
-                tag_list = tag_list->next;
-
-            tag_list->next = node;
-        }
+        append_field(node, record->control_fields, tag);
     }
+}
+
+
+/**
+ * Append the current field to the supplied field list.
+ *
+ * Field should be a linked list node whose data is either a ControlField or DataField.
+ * Hash table will be either the control or data fields hash tables.
+ * Tag is the MARC field tag (e.g., 001 or 245).
+ */
+void append_field(Node *field_node, HashTable *fields, char *tag) {
+    Node *tag_list = (Node *)HT_get(fields, tag);
+
+    if (tag_list == NULL) {
+        HT_set(fields, tag, field_node);
+    } else {
+        while (tag_list->next != NULL)
+            tag_list = tag_list->next;
+
+        tag_list->next = field_node;
+    }
+}
+
+
+ControlField* control_field_create(char *tag, char *data) {
+    ControlField *control_field = malloc(sizeof(ControlField));
+
+    control_field->tag = malloc(4);
+    control_field->value = malloc(strlen(data));
+    strcpy(control_field->tag, tag);
+    control_field->tag[3] = '\0';
+    strcpy(control_field->value, data);
+    marc_chomp(control_field->value);
+
+    return control_field;
 }
 
 
@@ -235,22 +257,13 @@ void get_data_fields(Record *record, size_t directory_length, char *directory, c
 
         int subfield_count = get_subfield_count(data_length, data);
         DataField *data_field = data_field_create(tag, subfield_count, data);
-
         Node *node = Node_create(data_field);
-        Node *tag_list = (Node *)HT_get(record->data_fields, data_field->tag);
-        if (tag_list == NULL) {
-            HT_set(record->data_fields, data_field->tag, node);
-        } else {
-            while (tag_list->next != NULL)
-                tag_list = tag_list->next;
-
-            tag_list->next = node;
-        }
+        append_field(node, record->data_fields, tag);
     }
 }
 
 
-DataField *data_field_create(char *tag, size_t subfield_count, char *data) {
+DataField* data_field_create(char *tag, size_t subfield_count, char *data) {
     DataField *data_field = malloc(sizeof(DataField));
     data_field->tag = malloc(4);
     strcpy(data_field->tag, tag);
@@ -282,7 +295,7 @@ DataField *data_field_create(char *tag, size_t subfield_count, char *data) {
 }
 
 
-Subfield *subfield_create(size_t token_length, char *token) {
+Subfield* subfield_create(size_t token_length, char *token) {
     Subfield *sf = malloc(sizeof(Subfield));
 
     sf->code = token[0];
