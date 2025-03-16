@@ -1,7 +1,6 @@
 #include "marc.h"
 #include "collections.h"
 
-
 #define LEADER_LENGTH 24
 #define DIRECTORY_ENTRY_LENGTH 12
 #define TAG_LENGTH 3
@@ -55,7 +54,7 @@ int MARC_get_next_raw(char *raw_record, FILE *fp) {
 }
 
 
-Record* MARC_get_record(char *record_raw) {
+Record* MARC_record_create(char *record_raw) {
     Record *record = malloc(sizeof(Record));
     record->leader = malloc(LEADER_LENGTH + 1);
     record->leader = get_leader(record_raw);
@@ -96,7 +95,7 @@ void MARC_free_record(Record *record) {
 
             free(tmp);
         }
-        HT_destroy(record->control_fields);
+        HT_free(record->control_fields);
     }
 
     if (record->data_fields != NULL) {
@@ -120,7 +119,7 @@ void MARC_free_record(Record *record) {
 
             free(tmp);
         }
-        HT_destroy(record->data_fields);
+        HT_free(record->data_fields);
     }
 
     if (record->leader)

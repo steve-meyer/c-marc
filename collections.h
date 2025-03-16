@@ -53,7 +53,7 @@ Node* Node_create(void *data);
 
 
 // Free Node from memory.
-void Node_destroy(Node *node);
+void Node_free(Node *node);
 
 
 // Create hash table and return pointer to it, or NULL if out of memory.
@@ -61,7 +61,7 @@ HashTable* HT_create(void);
 
 
 // Free memory allocated for hash table, including allocated keys.
-void HT_destroy(HashTable *table);
+void HT_free(HashTable *table);
 
 
 // Get item with given key (NUL-terminated) from hash table. Return
@@ -89,4 +89,4 @@ HashTableIterator HT_iterator(HashTable *table);
 // items, return false. Don't call ht_set during iteration.
 bool HT_next(HashTableIterator *it);
 
-#endif // _HT_H
+#endif

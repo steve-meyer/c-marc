@@ -10,7 +10,7 @@ Node* Node_create(void *data) {
 }
 
 
-void Node_destroy(Node *node) {
+void Node_free(Node *node) {
     free(node->data);
     free(node);
 }
@@ -35,7 +35,7 @@ HashTable* HT_create(void) {
 }
 
 
-void HT_destroy(HashTable* table) {
+void HT_free(HashTable* table) {
     // First free allocated keys.
     for (size_t i = 0; i < table->capacity; i++) {
         free((void*)table->entries[i].key);

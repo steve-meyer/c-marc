@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
     while (status != EOF)
     {
-        Record *record = MARC_get_record(record_raw);
+        Record *record = MARC_record_create(record_raw);
         printf("LEADER %s\n", record->leader);
 
         char **cf_tags = (char **)malloc(record->control_fields->length * sizeof(char *));
