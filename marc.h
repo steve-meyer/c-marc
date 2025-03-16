@@ -13,8 +13,6 @@
 #define SUBFIELD_INDICATOR 0x1F
 #define END_OF_FIELD 0x1E
 #define END_OF_RECORD 0x1D
-#define CONTROL_FIELD_TYPE = 1
-#define DATA_FIELD_TYPE = 2
 
 typedef struct {
   char code;
