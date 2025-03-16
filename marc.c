@@ -29,8 +29,8 @@ void get_control_fields(Record *record, size_t directory_length, char *directory
 void get_data_fields(Record *record, size_t directory_length, char *directory, char *record_raw);
 int get_subfield_count(size_t data_len, char *data);
 ControlField* control_field_create(char *tag, char *data);
-DataField *data_field_create(char *tag, size_t subfield_count, char *data);
-Subfield *subfield_create(size_t token_length, char *token);
+DataField* data_field_create(char *tag, size_t subfield_count, char *data);
+Subfield* subfield_create(size_t token_length, char *token);
 
 void marc_chomp(char *s);
 int string_cmp(const void *a, const void *b);
