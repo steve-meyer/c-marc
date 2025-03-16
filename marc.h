@@ -48,6 +48,4 @@ Record* MARC_get_record(char *record_raw);
 void MARC_free_record(Record *record);
 void MARC_get_field_tags(char **tags, HashTable *fields, size_t count);
 
-int string_cmp(const void *a, const void *b);
-
 #endif

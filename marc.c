@@ -11,7 +11,9 @@ void get_data_fields(Record *record, size_t directory_length, char *directory, c
 int get_subfield_count(size_t data_len, char *data);
 DataField *data_field_create(char *tag, size_t subfield_count, char *data);
 Subfield *subfield_create(size_t token_length, char *token);
+
 void marc_chomp(char *s);
+int string_cmp(const void *a, const void *b);
 
 
 int MARC_get_next_raw(char *raw_record, FILE *fp) {
