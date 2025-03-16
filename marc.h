@@ -14,6 +14,7 @@
 #define END_OF_FIELD 0x1E
 #define END_OF_RECORD 0x1D
 
+
 typedef struct {
   char code;
   char *value;
